@@ -1,0 +1,202 @@
+Файл Interface_cell.h:
+#include <iostream>
+using namespace std;
+
+class Interface_cell{
+    public:
+        virtual string get_object(){
+        }
+        virtual string get_condition(){
+        }
+        virtual void change_object(){
+        }
+        virtual void change_object(string obj){
+        }
+        virtual void change_condition(){
+        }
+        virtual void change_condition(string condit){
+        }
+};
+
+Файл Cell.h:
+#include "Interface_cell.h"
+
+class Cell: public Interface_cell{ 
+    private:
+        string condition; // 0 passable 1 impassable i in o out
+        string object;
+    public:
+        Cell(){
+            condition = " ";
+            object = "Empty";
+        }
+        Cell(string condit, string obj): condition(condit), object(obj){}
+        Cell(string condit): condition(condit){}
+        
+        string get_object(){
+            //cout << "Объект на клетке: " << object << endl;
+            return object;
+        }
+        string get_condition(){
+            //cout << "Состояние клетки: " << condition << endl;
+            return condition;
+        }
+        void change_object(){
+            cout << "Ввод объекта на клетку: ";
+            cin >> object;
+        }
+        void change_object(string obj){
+            object = obj;
+        }
+        void change_condition(){
+            cout << "Ввод состояние клетки: ";
+            cin >> condition;
+        }
+        void change_condition(string condit){
+            condition = condit;
+        }
+};
+
+Файл Field.h:
+#include <cstdlib>
+#include <ctime>
+#include "Cell.h"
+
+class Field{
+    friend class Builder;
+    protected:
+        int n, m;
+        Cell** arr;
+    public:
+        Field(int n_size, int m_size){
+            n = n_size;
+            m = m_size;
+            arr = new Cell*[n];
+            for (int i = 0; i < m; i++){
+                arr[i] = new Cell[m];
+            }
+        }
+        
+        Field(const Field& object){
+            n = object.n;
+            m = object.m;
+            arr = new Cell*[n];
+            for (int i = 0; i < m; i++){
+                arr[i] = new Cell[m];
+            }
+            for (int i = 0; i < n; i++){
+                for (int j = 0; j < m; j++){
+                    arr[i][j] = object.arr[i][j];
+                }
+            }
+        }
+        
+        Field & operator=(const Field & object){
+            if (this != &object){
+                for (int i = 0; i < n; i++){
+                    delete arr[i];
+                }
+                delete[] arr;
+                n = object.n;
+                m = object.m;
+                arr = new Cell*[n];
+                for (int i = 0; i < m; i++){
+                    arr[i] = new Cell[m];
+                }
+                for (int i = 0; i < n; i++){
+                    for (int j = 0; j < m; j++){
+                        arr[i][j] = object.arr[i][j];
+                    }
+                }
+            }
+            return *this;
+        }
+        
+        Field(Field&& object){
+            n = object.n;
+            m = object.m;
+            for (int i = 0; i < n; i++){
+                for (int j = 0; j < m; j++){
+                    arr[i][j] = object.arr[i][j];
+                }
+            }
+            object.arr = nullptr;
+            object.n = 0;
+            object.m = 0;
+        }
+        
+        Field & operator=(Field && object){
+            if (this != &object){
+                for (int i = 0; i < n; i++){
+                    delete arr[i];
+                }
+                delete[] arr;
+                n = object.n;
+                m = object.m;
+                for (int i = 0; i < n; i++){
+                    for (int j = 0; j < m; j++){
+                        arr[i][j] = object.arr[i][j];
+                    }
+                }
+                object.arr = nullptr;
+                object.n = 0;
+                object.m = 0;
+            }
+            return *this;
+        }
+        
+        ~Field(){
+            for (int i = 0; i < n; i++){
+                delete arr[i];
+            }
+            delete[] arr;
+        };
+
+        void print_Field(){
+            for (int i = 0; i < n; i++){
+                for (int j = 0; j < m; j++){
+                    cout << arr[i][j].get_condition();
+                }
+                cout << endl;
+            }
+        }
+};
+
+Файл Builder.cpp:
+#include "Field.h"
+
+class Builder{
+    private:
+        int n;
+        int m;
+    public:
+        Builder(int n, int m): n(n), m(m){}
+        Field fill_Field(){
+            Field field(n, m);
+            srand(time(0));
+            for (int i = 1; i < n; i++){
+                for (int j = 1; j < m-1; j++){
+                    field.arr[i][j].change_condition(to_string(rand() %2));
+                }
+            }
+            for (int i = 0; i < m; i ++) field.arr[0][i].change_condition("0");
+            for (int i = 0; i < n; i ++) field.arr[i][0].change_condition("0");
+            for (int i = 0; i < n; i ++) field.arr[i][m-1].change_condition("0");
+            field.arr[rand() %10][0].change_condition("i");
+            field.arr[rand() %10][m-1].change_condition("o");
+            return field;
+        }
+};
+
+int main(){
+    Builder field_gen(10, 10);
+    field_gen.fill_Field().print_Field();
+    return 0;
+}
+
+
+
+
+
+
+

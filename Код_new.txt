@@ -1,0 +1,278 @@
+Файл Object.h:
+#ifndef OBJECT_H
+#define OBJECT_H
+
+#include <iostream>
+using namespace std;
+
+class Object{
+    private:
+        string obj;
+    public:
+        string get_object();
+        void change_object();
+        void change_object(string object);
+};
+#endif
+
+Файл Object.cpp:
+#include "Object.h"
+
+string Object::get_object(){
+    return obj;
+}
+
+void Object::change_object(){
+    cout << "Ввод объекта на клетку: ";
+    cin >> obj;
+}
+
+void Object::change_object(string object){
+    obj = object;
+}
+
+Файл Interface_cell.h:
+#ifndef INTERFACECELL_H
+#define INTERFACECELL_H
+
+#include "Object.h"
+
+class Interface_cell{
+    protected:
+        Object obj;
+    public:
+        virtual string get_condition(){
+        }
+        virtual void change_condition(){
+        }
+        virtual void change_condition(string condit){
+        }
+};
+#endif
+
+Файл Cell.h:
+#ifndef CELL_H
+#define CELL_H
+
+#include "Interface_cell.h"
+
+class Cell: public Interface_cell{ 
+    private:
+        string condition;
+    public:
+        Cell(){
+            condition = "0";
+            obj.change_object("Empty");
+        }
+        string get_condition(){
+            return condition;
+        }
+        void change_condition(){
+            cout << "Ввод состояние клетки: ";
+            cin >> condition;
+        }
+        void change_condition(string condit){
+            condition = condit;
+        }
+};
+#endif
+
+Файл Entrance.h:
+#include "Cell.h"
+
+class Entrance: public Cell{
+    private:
+        string condition;
+    public:
+        Entrance(){
+            condition = "i";
+            obj.change_object("Empty");
+        }
+        string get_condition(){
+            return condition;
+        }
+};
+
+Файл Exit.h:
+#include "Cell.h"
+
+class Exit: public Cell{
+    private:
+        string condition;
+    public:
+        Exit(){
+            condition = "e";
+            obj.change_object("Empty");
+        }
+        string get_condition(){
+            return condition;
+        }
+};
+
+
+Файл Field.h:
+#include <cstdlib>
+#include <ctime>
+#include "Cell.h"
+
+class Field{
+    friend class Builder;
+    friend class field_View;
+    private:
+        void clear();
+        void copy(const Field & object);
+        void move(Field && object);
+    protected:
+        int n, m;
+        Cell** arr;
+    public:
+        Field(int n_size, int m_size);
+        
+        Field(const Field& object);
+        
+        Field & operator=(const Field & object);
+        
+        Field(Field&& object);
+        
+        Field & operator=(Field && object);
+        
+        ~Field();
+};
+
+Файл Field.cpp:
+#include "Field.h"
+
+void Field::clear(){
+    for (int i = 0; i < n; i++){
+        delete arr[i];
+    }
+    delete[] arr;
+}
+
+void Field::copy(const Field & object){
+    n = object.n;
+    m = object.m;
+    arr = new Cell*[n];
+    for (int i = 0; i < m; i++){
+        arr[i] = new Cell[m];
+    }
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j < m; j++){
+            arr[i][j] = object.arr[i][j];
+        }
+    }
+}
+
+void Field::move(Field && object){
+    n = object.n;
+    m = object.m;
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j < m; j++){
+            arr[i][j] = object.arr[i][j];
+        }
+    }
+    object.arr = nullptr;
+    object.n = 0;
+    object.m = 0;
+}
+
+Field::Field(int n_size, int m_size){
+    n = n_size;
+    m = m_size;
+    arr = new Cell*[n];
+    for (int i = 0; i < m; i++){
+        arr[i] = new Cell[m];
+    }
+}
+
+Field::Field(const Field & object){
+    copy(object);
+}
+
+Field & Field::operator=(const Field& object){
+    if (this != &object){
+        clear();
+        copy(object);
+    }
+    return *this;
+}
+
+Field::Field(Field && object){
+    move(std::move(object));
+}
+
+Field & Field::operator=(Field&& object){
+    if (this != &object){
+        clear();
+        move(std::move(object));
+    }
+    return *this;
+}
+
+Field::~Field(){
+    clear();
+}
+
+Файл Builder.h:
+#include "Field.h"
+#include "Entrance.h"
+#include "Exit.h"
+
+class Builder{
+    private:
+        int n;
+        int m;
+    public:
+        Builder(int n, int m): n(n), m(m){}
+        Field fill_Field(){
+            Field field(n, m);
+            srand(time(0));
+            for (int i = 1; i < n; i++){
+                for (int j = 1; j < m-1; j++){
+                    field.arr[i][j].change_condition(to_string(rand() %2));
+                }
+            }
+            for (int i = 0; i < m; i ++) field.arr[0][i].change_condition("0");
+            for (int i = 0; i < n; i ++) field.arr[i][0].change_condition("0");
+            for (int i = 0; i < n; i ++) field.arr[i][m-1].change_condition("0");
+            Entrance i;
+            field.arr[rand() %10][0].change_condition(i.get_condition());
+            Exit e;
+            field.arr[rand() %10][m-1].change_condition(e.get_condition());
+            return field;
+        }
+};
+
+Файл field_View.cpp:
+#include "Builder.h"
+
+class field_View{  
+    public:
+        field_View(){}
+        void print_F(Field object){
+            Field field_for_print = object;
+            for (int i = 0; i < field_for_print.n; i++){
+                for (int j = 0; j < field_for_print.m; j++){
+                    cout << field_for_print.arr[i][j].get_condition();
+                }
+                cout << endl;
+            }
+        }
+};
+
+int main(){
+    Builder field_gen(15, 15);
+    //field_gen.fill_Field().print_Field();
+    Field field = field_gen.fill_Field();
+    field_View f;
+    f.print_F(field);
+    return 0;
+}
+
+
+
+
+
+
+
+
